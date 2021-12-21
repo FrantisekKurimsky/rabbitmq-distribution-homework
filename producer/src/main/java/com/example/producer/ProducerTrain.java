@@ -46,7 +46,7 @@ public class ProducerTrain {
             platformTrains[counter]  = valuesList.get((int) (Math.random() * valuesList.size()));
             Date date = new Date();
             if (date.compareTo(platformTrains[counter] .getArrival()) >= 0) {
-                platformTrains[counter] .setDelay(date.getTime()-platformTrains[counter] .getArrival().getTime());
+                platformTrains[counter].setDelay((date.getTime()-platformTrains[counter] .getArrival().getTime())/1000);
                 logger.info("chosen train: {}", platformTrains[counter] .getType() + platformTrains[counter] .getNumber());
                 amqpTemplate.convertAndSend("arrival", "arrival.platform"+(counter+1), platformTrains[counter] );
                 generatedTrains.remove(platformTrains[counter] .getType() + platformTrains[counter] .getNumber());

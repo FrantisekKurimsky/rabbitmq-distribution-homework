@@ -50,8 +50,8 @@ public class Demo1Application {
     public void check() {
         Date date = new Date();
         for (Map.Entry<String, Train> entry : trains.entrySet()) {
-            if (entry.getValue().getArrival().compareTo(date)<=0){
-                entry.getValue().setDelay(date.getTime()-entry.getValue().getArrival().getTime());
+            if (entry.getValue().getArrival().compareTo(date)<=0 && entry.getValue().getPlatform()==0){
+                entry.getValue().setDelay((date.getTime()-entry.getValue().getArrival().getTime())/1000);
             }
         }
 

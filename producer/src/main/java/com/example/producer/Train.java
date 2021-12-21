@@ -27,7 +27,7 @@ public class Train {
             Date date = new Date();
             Date date2 = new Date();
             if (i <= 20 / 2)
-                date2.setMinutes(date2.getMinutes() + i * (-1));
+                date2.setSeconds(date2.getSeconds() + i * (-10));
             else
                 date2.setSeconds(date2.getSeconds() + (i - 10) * (10));
             train.setArrival(date2);
