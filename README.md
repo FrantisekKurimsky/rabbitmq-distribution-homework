@@ -32,3 +32,4 @@ Vyberte si jeden broker — buď RabbitMQ alebo Kafka — a implementujte zadani
     - výpis najbližších 20 odchádzajúcich vlakov krížom cez všetky nástupištia pre účely centrálnej elektronickej tabule
 
 Pri demonštrácii predpokladajte, že na stanici existuje 5 elektronických tabúľ, ktoré nezávisle od seba ukazujú informácie. Tabule sa môžu kaziť – preukážte to v kóde. 
+![img.png](img.png)

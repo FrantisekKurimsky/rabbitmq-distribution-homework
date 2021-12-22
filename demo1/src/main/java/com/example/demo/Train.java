@@ -7,6 +7,7 @@ public class Train {
     private String type;
     private Long number;
     private Date arrival;
+    private Date delayedArrival;
     private Date departure;
     private int platform;
     private String destination;
@@ -68,5 +69,13 @@ public class Train {
 
     public void setDelay(Long delay) {
         this.delay = delay;
+    }
+
+    public Date getDelayedArrival() {
+        return delayedArrival;
+    }
+
+    public void setDelayedArrival(Date delayedArrival) {
+        this.delayedArrival = delayedArrival;
     }
 }

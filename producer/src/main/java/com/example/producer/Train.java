@@ -12,6 +12,7 @@ public class Train {
     private String type;
     private Long number;
     private Date arrival;
+    private Date delayedArrival;
     private Date departure;
     private int platform;
     private String destination;
@@ -30,13 +31,13 @@ public class Train {
                 date2.setSeconds(date2.getSeconds() + i * (-10));
             else
                 date2.setSeconds(date2.getSeconds() + (i - 10) * (10));
-            train.setArrival(date2);
+            train.setDeparture(date2);
             date.setMinutes(date2.getMinutes());
             date.setHours(date2.getHours());
             date.setSeconds(date2.getSeconds()+40);
             date.setMonth(date2.getMonth());
             date.setDate(date2.getDate());
-            train.setDeparture(date);
+            train.setArrival(date);
             trains.put(train.getType() + train.getNumber(), train);
         }
         for (int i = 0; i < 20; i++) {
@@ -50,17 +51,21 @@ public class Train {
                 date2.setMinutes(date2.getMinutes() + i * (-1));
             else
                 date2.setSeconds(date2.getSeconds() + (i - 10) * (10));
-            train.setArrival(date2);
+            train.setDeparture(date2);
             date.setMinutes(date2.getMinutes());
             date.setHours(date2.getHours());
             date.setSeconds(date2.getSeconds()+40);
             date.setMonth(date2.getMonth());
             date.setDate(date2.getDate());
-            train.setDeparture(date);
+            train.setArrival(date);
             trains.put(train.getType() + train.getNumber(), train);
         }
         return trains;
     }
+
+    public Date getDelayedArrival() {return delayedArrival;}
+
+    public void setDelayedArrival(Date delayedArrival) {this.delayedArrival = delayedArrival;}
 
     public String getType() {
         return type;

@@ -44,14 +44,48 @@ public class Demo1Application {
     public static final Logger logger = LoggerFactory.getLogger(Demo1Application.class);
     private ConcurrentMap<String,Train> trains = new ConcurrentHashMap<>();
     boolean canGo = false;
+
+    Map<String, Train>[] plat = getplat();
     Train [] platformTrains = new Train[5];
+
+    public Map<String, Train>[] getplat(){
+        Map<String, Train>[] plat = new HashMap[5];
+        for (int i = 0; i < 5; i++) {
+            plat[i] = new HashMap<>();
+        }
+        return plat;
+    }
+    //                        plat[entry.getValue().getPlatform()-1].get(entry.getKey()).setDelay((date.getTime()-entry.getValue().getArrival().getTime())/1000);
 
     @Scheduled(fixedDelay = 2000, initialDelay = 10000)
     public void check() {
         Date date = new Date();
         for (Map.Entry<String, Train> entry : trains.entrySet()) {
-            if (entry.getValue().getArrival().compareTo(date)<=0 && entry.getValue().getPlatform()==0){
-                entry.getValue().setDelay((date.getTime()-entry.getValue().getArrival().getTime())/1000);
+            if (entry.getValue().getDelayedArrival()==null){
+                if (entry.getValue().getArrival().compareTo(date)<=0){
+                    entry.getValue().setDelay((date.getTime()-entry.getValue().getArrival().getTime())/1000);
+                }
+            }else{
+                if (entry.getValue().getDelayedArrival().compareTo(date)<=0){
+                    entry.getValue().setDelay((date.getTime()-entry.getValue().getArrival().getTime())/1000);
+                }else{
+                    entry.getValue().setDelay((entry.getValue().getDelayedArrival().getTime()-entry.getValue().getArrival().getTime())/1000);
+                }
+            }
+        }
+        for (int i = 0; i < plat.length; i++) {
+            for (Map.Entry<String, Train> entry : plat[i].entrySet()) {
+                if (entry.getValue().getDelayedArrival()==null){
+                    if (entry.getValue().getArrival().compareTo(date)<=0){
+                        entry.getValue().setDelay((date.getTime()-entry.getValue().getArrival().getTime())/1000);
+                    }
+                }else{
+                    if (entry.getValue().getDelayedArrival().compareTo(date)<=0){
+                        entry.getValue().setDelay((date.getTime()-entry.getValue().getArrival().getTime())/1000);
+                    }else{
+                        entry.getValue().setDelay((entry.getValue().getDelayedArrival().getTime()-entry.getValue().getArrival().getTime())/1000);
+                    }
+                }
             }
         }
 
@@ -81,6 +115,65 @@ public class Demo1Application {
             if (nowTrain!=null){
                 finalne.add(nowTrain);
             }
+        }
+        return finalne;
+    }
+    @RequestMapping("/platform1")
+    @CrossOrigin
+    public List<Train> platform1() {
+        List<Train> values = new ArrayList<>(plat[0].values());
+        List<Train> finalne = new  ArrayList<>();
+        values.sort(Comparator.comparing(Train::getDeparture));
+        for (int i = 0; i < values.size(); i++) {
+            finalne.add(values.get(i));
+        }
+        return finalne;
+    }
+
+    @RequestMapping("/platform2")
+    @CrossOrigin
+    public List<Train> platform2() {
+        List<Train> values = new ArrayList<>(plat[1].values());
+        List<Train> finalne = new  ArrayList<>();
+        values.sort(Comparator.comparing(Train::getDeparture));
+        for (int i = 0; i < values.size(); i++) {
+            finalne.add(values.get(i));
+        }
+        return finalne;
+    }
+
+    @RequestMapping("/platform3")
+    @CrossOrigin
+    public List<Train> platform3() {
+        List<Train> values = new ArrayList<>(plat[2].values());
+        List<Train> finalne = new  ArrayList<>();
+        values.sort(Comparator.comparing(Train::getDeparture));
+        for (int i = 0; i < values.size(); i++) {
+            finalne.add(values.get(i));
+        }
+        return finalne;
+    }
+
+    @RequestMapping("/platform4")
+    @CrossOrigin
+    public List<Train> platform4() {
+        List<Train> values = new ArrayList<>(plat[3].values());
+        List<Train> finalne = new  ArrayList<>();
+        values.sort(Comparator.comparing(Train::getDeparture));
+        for (int i = 0; i < values.size(); i++) {
+            finalne.add(values.get(i));
+        }
+        return finalne;
+    }
+
+    @RequestMapping("/platform5")
+    @CrossOrigin
+    public List<Train> platform5() {
+        List<Train> values = new ArrayList<>(plat[4].values());
+        List<Train> finalne = new  ArrayList<>();
+        values.sort(Comparator.comparing(Train::getDeparture));
+        for (int i = 0; i < values.size(); i++) {
+            finalne.add(values.get(i));
         }
         return finalne;
     }
@@ -116,9 +209,17 @@ public class Demo1Application {
 
     @Bean
     Queue trainsQueue() {return QueueBuilder.durable("trains").build();}
+    @Bean
+    Queue delayQueue() {return QueueBuilder.durable("delay").build();}
+    @Bean
+    Queue platformAddQueue() {return QueueBuilder.durable("platformAdd").build();}
 
     @Bean
     Binding scheduleToTrainsBinding() {return BindingBuilder.bind(trainsQueue()).to(scheduleExchange()).with("schedule.trains");}
+    @Bean
+    Binding scheduleToDelayBinding() {return BindingBuilder.bind(delayQueue()).to(scheduleExchange()).with("schedule.delay");}
+    @Bean
+    Binding scheduleToPaltformBinding() {return BindingBuilder.bind(platformAddQueue()).to(scheduleExchange()).with("schedule.platformAdd");}
 
     @Bean
     Binding departureToD1Binding() {return BindingBuilder.bind(platform1Queue()).to(arrivalExchange()).with("arrival.platform1"); }
@@ -149,7 +250,40 @@ public class Demo1Application {
         trains = new ConcurrentHashMap<>(recievedTrains);
         canGo = true;
         for (Map.Entry<String, Train> entry : trains.entrySet()) {
+            if (entry.getValue().getPlatform()>0){
+                plat[entry.getValue().getPlatform()-1].put(entry.getKey(), entry.getValue());
+            }
             logger.info("checking train from schedule {}, with arrival : {}, and departure {}",entry.getKey(),entry.getValue().getArrival(), entry.getValue().getDeparture());
+        }
+    }
+
+    @RabbitListener(queues = "delay")
+    public void receiveDelay(Train recievedTrain) {
+        if (!canGo) {
+            throw new IllegalArgumentException("message");
+        }else{
+            if (trains.get(recievedTrain.getType()+recievedTrain.getNumber()) != null) {
+                trains.get(recievedTrain.getType() + recievedTrain.getNumber()).setDelayedArrival(recievedTrain.getDelayedArrival());
+                if (recievedTrain.getPlatform() > 0) {
+                    plat[recievedTrain.getPlatform() - 1].get(recievedTrain.getType() + recievedTrain.getNumber()).setDelayedArrival(recievedTrain.getDelayedArrival());
+                }
+            }else{
+                System.out.println("Train is not relevant");
+            }
+        }
+    }
+    @RabbitListener(queues = "platformAdd")
+    public void receivePlatform(Train recievedTrain) {
+        if (!canGo) {
+            throw new IllegalArgumentException("message");
+        }else{
+            if (trains.get(recievedTrain.getType()+recievedTrain.getNumber()) != null) {
+                trains.get(recievedTrain.getType() + recievedTrain.getNumber()).setPlatform(recievedTrain.getPlatform());
+                plat[recievedTrain.getPlatform() - 1].put(recievedTrain.getType() + recievedTrain.getNumber(), recievedTrain);
+            }else{
+                System.out.println("Train is not relevant");
+            }
+
         }
     }
 
@@ -158,7 +292,7 @@ public class Demo1Application {
         if (!canGo) {
             throw new IllegalArgumentException("message");
         }else{
-            train.setPlatform(1);
+//            train.setPlatform(1);
             platformTrains[0]=train;
             arrivedTrain(train, 1);
 
@@ -170,7 +304,7 @@ public class Demo1Application {
         if (!canGo) {
             throw new IllegalArgumentException("message");
         }else{
-            train.setPlatform(2);
+//            train.setPlatform(2);
             platformTrains[1]=train;
             arrivedTrain(train, 2);
 
@@ -182,7 +316,7 @@ public class Demo1Application {
         if (!canGo) {
             throw new IllegalArgumentException("message");
         }else{
-            train.setPlatform(3);
+//            train.setPlatform(3);
             platformTrains[2]=train;
             arrivedTrain(train, 3);
 
@@ -194,7 +328,7 @@ public class Demo1Application {
         if (!canGo) {
             throw new IllegalArgumentException("message");
         }else{
-            train.setPlatform(4);
+//            train.setPlatform(4);
             platformTrains[3]=train;
             arrivedTrain(train, 4);
 
@@ -206,7 +340,7 @@ public class Demo1Application {
         if (!canGo) {
             throw new IllegalArgumentException("message");
         }else{
-            train.setPlatform(5);
+//            train.setPlatform(5);
             platformTrains[4]=train;
             arrivedTrain(train, 5);
 
@@ -273,7 +407,8 @@ public class Demo1Application {
         if (trainFromMap.getPlatform()==0){
             throw new IllegalArgumentException("este vlak neprisiel");
         }
-        trainFromMap.setDelay(train.getDelay());
+//        trainFromMap.setDelay(train.getDelay());
+        plat[platform-1].remove(trainFromMap.getType()+trainFromMap.getNumber());
         trains.remove(trainFromMap.getType()+trainFromMap.getNumber());
         logger.info("exited train {} on platform {}, with arrival : {}, and departure {} and delay: {}",trainFromMap.getType()+trainFromMap.getNumber(),platform,trainFromMap.getArrival().getMinutes(), trainFromMap.getDeparture().getMinutes(), trainFromMap.getDelay());
     }

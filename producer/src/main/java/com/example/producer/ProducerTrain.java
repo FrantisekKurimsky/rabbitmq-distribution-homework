@@ -39,34 +39,54 @@ public class ProducerTrain {
 
     @Scheduled(fixedDelay = 2000, initialDelay = 10000)
     public void platform1ServiceArrival() {
+        List<Train> valuesList = new ArrayList<>(generatedTrains.values());
+        Train randomTrain = valuesList.get((int) (Math.random() * valuesList.size()));
+        Date date1 = new Date();
+        if (Math.random() < 0.9) {
 
-        if (platformTrains[counter] == null && generatedTrains.size() > 0) {
+            if (randomTrain.getPlatform() > 0) {
+                if (platformTrains[randomTrain.getPlatform() - 1] != null && platformTrains[randomTrain.getPlatform() - 1].getDeparture().compareTo(date1) <= 0) {
+                    amqpTemplate.convertAndSend("departure", "departure." + (randomTrain.getPlatform()), platformTrains[randomTrain.getPlatform() - 1]);
+                    platformTrains[randomTrain.getPlatform() - 1] = null;
+                } else {
+                    Date date = new Date();
+                    if (randomTrain.getDelayedArrival() != null){
+                        if (date.compareTo(randomTrain.getDelayedArrival()) >= 0) {
+                            randomTrain.setDelay((date.getTime() - randomTrain.getArrival().getTime()) / 1000);
+                            amqpTemplate.convertAndSend("arrival", "arrival.platform" + (randomTrain.getPlatform()), randomTrain);
+                            generatedTrains.remove(randomTrain.getType() + randomTrain.getNumber());
+                            platformTrains[randomTrain.getPlatform() - 1] = randomTrain;
+                            logger.info("chosen train: {}", platformTrains[randomTrain.getPlatform()].getType() + platformTrains[randomTrain.getPlatform()].getNumber());
+                        }
+                    }else{
+                        if (date.compareTo(randomTrain.getArrival()) >= 0) {
+                            randomTrain.setDelay((date.getTime() - randomTrain.getArrival().getTime()) / 1000);
+                            amqpTemplate.convertAndSend("arrival", "arrival.platform" + (randomTrain.getPlatform()), randomTrain);
+                            generatedTrains.remove(randomTrain.getType() + randomTrain.getNumber());
+                            platformTrains[randomTrain.getPlatform() - 1] = randomTrain;
+                            logger.info("chosen train: {}", platformTrains[randomTrain.getPlatform()-1].getType() + platformTrains[randomTrain.getPlatform()-1].getNumber());
+                        }
+                    }
 
-            List<Train> valuesList = new ArrayList<>(generatedTrains.values());
-            platformTrains[counter]  = valuesList.get((int) (Math.random() * valuesList.size()));
-            Date date = new Date();
-            if (date.compareTo(platformTrains[counter] .getArrival()) >= 0) {
-                platformTrains[counter].setDelay((date.getTime()-platformTrains[counter] .getArrival().getTime())/1000);
-                logger.info("chosen train: {}", platformTrains[counter] .getType() + platformTrains[counter] .getNumber());
-                amqpTemplate.convertAndSend("arrival", "arrival.platform"+(counter+1), platformTrains[counter] );
-                generatedTrains.remove(platformTrains[counter] .getType() + platformTrains[counter] .getNumber());
+                }
+
             } else {
-                platformTrains[counter] = null;
-            }
+                int num = (int) (Math.random() * 5) + 1;
+                generatedTrains.get(randomTrain.getType() + randomTrain.getNumber()).setPlatform(num);
+                randomTrain.setPlatform(num);
+                amqpTemplate.convertAndSend("schedule", "schedule.platformAdd", randomTrain);
 
+            }
 
         } else {
-            Date date = new Date();
-            if (platformTrains[counter]  != null && platformTrains[counter] .getDeparture().compareTo(date) <= 0) {
-                platformTrains[counter] .setDelay(date.getTime()-platformTrains[counter] .getDeparture().getTime());
-                amqpTemplate.convertAndSend("departure", "departure."+(counter+1), platformTrains[counter] );
-                platformTrains[counter]  = null;
-            }
+            Date date = randomTrain.getArrival();
+            date.setMinutes(date.getMinutes() + 10);
+            generatedTrains.get(randomTrain.getType() + randomTrain.getNumber()).setDelayedArrival(date);
+            randomTrain.setDelayedArrival(date);
+            logger.info("delayed train: {}",randomTrain.getType() + randomTrain.getNumber());
+            amqpTemplate.convertAndSend("schedule", "schedule.delay", randomTrain);
         }
-        counter+=1;
-        if (counter==platformTrains.length){
-            counter=0;
-        }
+
 
     }
 
